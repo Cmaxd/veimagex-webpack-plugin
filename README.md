@@ -56,4 +56,4 @@ plugins: [
 
 ### 注意
 
-不要对同一个图片文件同时使用 file-loader 和 @byted/imagex-webpack-plugin
+不要对同一个图片文件同时使用 file-loader 和 veimagex-webpack-plugin
