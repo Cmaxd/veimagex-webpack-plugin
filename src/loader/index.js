@@ -1,8 +1,8 @@
-import path from 'path';
+const path = require('path');
 
-import { getOptions, interpolateName } from 'loader-utils';
+const { getOptions, interpolateName } = require('loader-utils');
 
-import { normalizePath, uploadImage } from './utils';
+const { normalizePath, uploadImage } = require('./utils');
 
 function loader(content) {
   const options = getOptions(this) || {};
@@ -25,18 +25,20 @@ function loader(content) {
       formatDomain = formatDomain.endsWith('/')
         ? formatDomain
         : `${formatDomain}/`;
+        result = `var ret = '';
       
-      result = `var ret = '';
-      if (typeof document === 'object') {
-        if (document.documentElement.classList.contains('__webp__')) {
-          ret = "//${formatDomain}${imagexUri}~${options.template}${urlParams}.webp";
+        if (typeof document === 'object') {
+          var format = '';
+          document.documentElement.classList.forEach(item => { if (item.match(/__(\\w+)__/)) { format = (item.match(/__(\\w+)__/))[1]; }})
+          if (format) {
+            ret = "//${formatDomain}${imagexUri}~${options.template}${urlParams}." + format;
+          } else {
+            ret = "//${formatDomain}${imagexUri}~${options.template}${urlParams}.image";
+          }
         } else {
           ret = "//${formatDomain}${imagexUri}~${options.template}${urlParams}.image";
         }
-      } else {
-        ret = "//${formatDomain}${imagexUri}~${options.template}${urlParams}.image";
-      }
-      ${esModule ? 'export default' : 'module.exports ='} ret`;
+        ${esModule ? 'export default' : 'module.exports ='} ret`;
     } else {
       const context = options.context || that.rootContext;
       const name = options.name || '[contenthash].[ext]';
@@ -66,7 +68,7 @@ function loader(content) {
             options.publicPath.endsWith('/')
               ? options.publicPath
               : `${options.publicPath}/`
-          }${url}`;
+            }${url}`;
         }
 
         publicPath = JSON.stringify(publicPath);
@@ -104,7 +106,7 @@ function loader(content) {
 
       result = `${
         esModule ? 'export default' : 'module.exports ='
-      } ${publicPath};`;
+        } ${publicPath};`;
     }
     callback(null, result);
   });

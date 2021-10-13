@@ -2,7 +2,10 @@ const handleCss = require('./handleCss');
 
 function ImagexWebpackPlugin(htmlWebpackPlugin, options) {
   this.htmlWebpackPlugin = htmlWebpackPlugin;
-  this.options = options || {};
+  this.options = {
+    ...(options || {}),
+    format: options.format || 'webp',
+  };
 }
 
 ImagexWebpackPlugin.prototype.apply = function (compiler) {
@@ -11,21 +14,20 @@ ImagexWebpackPlugin.prototype.apply = function (compiler) {
     const hooks = self.htmlWebpackPlugin.getHooks(compilation);
     hooks.alterAssetTagGroups.tapAsync(
       'ImagexWebpackPlugin',
-      self.checkSupportWebp.bind(self)
+      self.checkSupportFormat.bind(self)
     );
   });
 
   compiler.hooks.done.tap('ImagexWebpackPluginHandleCss', function (stats) {
     try {
-      console.log('********', self.options)
       self.handleCss(stats, self.options);
     } catch (error) {
-      console.log(error);
+      console.error(error);
     }
   });
 };
 
-ImagexWebpackPlugin.prototype.checkSupportWebp = function (
+ImagexWebpackPlugin.prototype.checkSupportFormat = function (
   htmlPluginData,
   callback
 ) {
@@ -36,31 +38,31 @@ ImagexWebpackPlugin.prototype.checkSupportWebp = function (
       type: 'text/javascript'
     },
     innerHTML: `
-      var isSupportWebp = !![].map && document.createElement('canvas').toDataURL('image/webp').indexOf('data:image/webp') == 0;
-      if (isSupportWebp) document.documentElement.classList.add('__webp__');
+      var isSupportFormat = !![].map && document.createElement('canvas').toDataURL('image/${this.options.format}').indexOf('data:image/${this.options.format}') == 0;
+      if (isSupportFormat) document.documentElement.classList.add('__${this.options.format}__');
     `
   });
   htmlPluginData.headTags.forEach((tag, index) => {
     if (tag.tagName === 'link' && tag.attributes.rel === 'stylesheet') {
       const url = tag.attributes.href;
-      // 添加webp支持判断代码
+      // 添加代码判断是否支持相应格式
       htmlPluginData.headTags[index] = {
         tagName: 'script',
         closeTag: true,
         attributes: {
           type: 'text/javascript'
         },
-        innerHTML: `  
-            var oHead = document.querySelector('head');
-            var oStyle = document.createElement('link');
-            oStyle.rel = "stylesheet";
-            if (document.documentElement.classList.contains('__webp__')) {
-              oStyle.href = '${url.replace(/\.css/, '.webp.css')}';
-            } else {
-              oStyle.href = '${url}';
-            }
-            oHead.appendChild(oStyle)
-          `
+        innerHTML: `
+          var _headElement = document.querySelector('head');
+          var _linkElement = document.createElement('link');
+          _linkElement.rel = "stylesheet";
+          if (document.documentElement.classList.contains('__${this.options.format}__')) {
+            _linkElement.href = '${url.replace(/\.css/, `.${this.options.format}.css`)}';
+          } else {
+            _linkElement.href = '${url}';
+          }
+          _headElement.appendChild(_linkElement)
+        `
       };
     }
   })

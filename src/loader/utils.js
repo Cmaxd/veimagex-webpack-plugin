@@ -1,11 +1,18 @@
-const ImagexClient = require('vcloud-sdk-nodejs/lib/services/imagex');
+const { imagex } = require('@volcengine/openapi');
 
 const RegionMap = {
-  cn: 'https://imagex.bytedanceapi.com',
-  sg: 'https://open.ap-singapore-1.bytedanceapi.com',
-  us: 'https://open.us-east-1.bytedanceapi.com',
-  boe: 'https://staging-openapi-boe.byted.org',
-  boei18n: 'https://staging-openapi-boei18n.byted.org',
+  cn: {
+    host: 'imagex.volcengineapi.com',
+    region: 'cn-north-1'
+  },
+  sg: {
+    host: 'imagex-ap-singapore-1.volcengineapi.com',
+    region: 'ap-singapore-1'
+  },
+  us: {
+    host: 'imagex-us-east-1.volcengineapi.com',
+    region: 'us-east-1'
+  }
 };
 
 function normalizePath(path, stripTrailing) {
@@ -59,15 +66,17 @@ async function retry(asyncFunction, query = {}, options) {
   return null;
 }
 
-async function uploadImage(file, options = {}, callback = () => {}) {
-  const client = new ImagexClient({
-    accesskey: options.accessKey,
-    secretkey: options.secretKey,
-    endpoint: RegionMap[options.region || 'cn'] || RegionMap.cn,
+async function uploadImage(file, options = {}, callback = () => { }) {
+  const imagexService = new imagex.ImagexService({
+    accessKeyId: options.accessKey,
+    secretKey: options.secretKey,
+    region: RegionMap[options.region || 'cn'].region,
+    host: RegionMap[options.region || 'cn'].host
   });
+
   try {
-    const res = await retry(
-      client.UploadImages,
+    const response = await retry(
+      imagexService.UploadImages,
       {
         serviceId: options.serviceId,
         files: [file],
@@ -75,7 +84,8 @@ async function uploadImage(file, options = {}, callback = () => {}) {
       { originUrl: options.originUrl }
     );
     let url = null;
-    if (res && Array.isArray(res.Results) && res.Results[0]) {
+    const res = response ? response.Result || {} : {};
+    if (Array.isArray(res.Results) && res.Results[0]) {
       url = res.Results[0].Uri;
       console.log(`${options.originUrl}: upload success`);
     }
@@ -87,4 +97,4 @@ async function uploadImage(file, options = {}, callback = () => {}) {
 }
 
 // eslint-disable-next-line import/prefer-default-export
-export { normalizePath, uploadImage, retry };
+module.exports = { normalizePath, uploadImage, retry };
